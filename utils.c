@@ -70,7 +70,7 @@ char* check_filename_extension(char *filename)
         return dot + 1; // get the string (filename's extension)
 }
 
-void error_checking(int error_type)
+void error_checking(int error_type, char *additional_msg)
 {
         switch(error_type)
         {
@@ -83,9 +83,9 @@ void error_checking(int error_type)
                 case 3: // wrong file extension name (in this project, only using text file (*.txt))
                         printf("Wrong input file type, please use a text file.\nUsage: <file_name>.txt\n");
                         break;
-                case 4: // file not found
-                        printf("File not found. Exit...!.\n");
+                case 4: // can't load file
+                        printf("Error opening file: %s\n", additional_msg);
+                        printf("Load file failed.\n");
                         break;
-                // case 5: // no permission to open this file
         }
 }
