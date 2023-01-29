@@ -10,6 +10,6 @@
  * This is the header file of utils.c, contains the initialization of functions written in utils.c
 */
 
-int count_words(char *word);
-char* check_filename_extension(char *filename);
-void error_checking(int error_type);
+int count_words(char *word); // used to count the number of words in a file
+char* check_filename_extension(char *filename); // check filename's extension
+void error_checking(int error_type, char *additional_msg); // print the error, and any additional message
