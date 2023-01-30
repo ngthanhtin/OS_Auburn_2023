@@ -46,30 +46,31 @@ int main(int argc, char *argv[])
 			return 0;
 		}
 
-		// Variables for Pipes
-		char read_msg[BUFFER_SIZE];
+		// Create two pipes for two processes
+		char read_msg[BUFFER_SIZE]; // used to read message
+		char write_msg[BUFFER_SIZE]; // used to write message
 		pid_t pid;
 		int fd1[2]; // file descriptors for pipe 1
 		int fd2[2]; // file descriptors for pipe 2
 
-		/* create the second pipe to send msg to parent */
+		
 		
 		printf("Creating a pipe ...\n");
-		/* create the first pipe to send msg to child */
-		//pipe(fd1);
+		// create the 1st pipe to send message from proc 1 to proc 2
 		if (pipe(fd1) == -1) 
 		{
 			fprintf(stderr,"Failed to create a pipe\n");
 			return 1;
 		}
+		// create the 2nd pipe to send message from proc 2 to proc 1
 		if (pipe(fd2) == -1) 
 		{
 			fprintf(stderr,"Failed to create a pipe\n");
 			return 1;
 		}
 		
-		/* now fork a child process */
-		printf("Forking a child process\n");
+		// then, fork a child process (process 1 which is the parent process, process 2 or other ones is child process)
+		printf("Forking a child process ...\n");
 		pid = fork();
 		
 		if (pid < 0) 
@@ -80,94 +81,93 @@ int main(int argc, char *argv[])
 
 		if (pid > 0) 
 		{ 
-			/* parent process */
+			// 1st process, which is also the parent process
 
+			// The 1st process will read the content of a file and save into a buffer
 			printf("Begin to load file.\n");
-
-			FILE *fp;
-			static char res[BUFFER_SIZE];
+			FILE *file;
+			static char content[BUFFER_SIZE];
 			int errnum; // stores error number when attempting to open a file
-			fp = fopen(filename,"r");
-			if(fp == NULL) // if can not open the file
+			file = fopen(filename, "r");
+			if(file == NULL) // if can not open the file
 			{
 				errnum = errno;
 				error_checking(4, strerror(errnum)); // load file failed
-				return 0;
+				exit(0);
 			}
 			else // opens file file successfully, now read the content of the file into a buffer
 			{
-				fgets(res,BUFFER_SIZE,fp);
-				fclose(fp);
+				fgets(content,BUFFER_SIZE,file);
+				fclose(file);
 				printf("Load file into buffer successfully.\n");
 			}
 			
-			char write_msg[BUFFER_SIZE];
-			strcpy(write_msg, res);
+			// copy the data into an array which has the size of BUFFER_SIZE
+			strcpy(write_msg, content);
 
+			// close the read end of the pipe which is an unsued end of the pipe
 			close(fd1[READ_END]);
 			
-			/* write to the pipe */
-			printf("Parent process begin to write msg to pipe\n");
+			// write to a pipe
+			printf("1st (parent) process begins to write message to a pipe\n");
 			write(fd1[WRITE_END], write_msg, strlen(write_msg)+1);
 			
-			/* close the write end of the pipe */
+			// close the write end of the pipe which is an unused end of the pipe
 			close(fd1[WRITE_END]);
 			
+			// wait for the 2nd (child) process
 			wait(0);
+
 			int result[4];  
-			//printf("The result is %d.\n",result[0]);
-			/* close the unused end of the pipe */
+			// close the unused end of the pipe which is an unused end of the pipe
 			close(fd2[WRITE_END]);
 			
-			/* read from the pipe */
-			printf("parent process get result from pipe.\n");
+			// read from the pipe 
+			printf("1st (parent) process get result from pipe.\n");
 			read(fd2[READ_END], result, sizeof(result));
 			//print the result
 			printf("The result is %d.\n",result[0]);
-			/* close the write end of the pipe */
+			// close the write end of the pipe which is an unused end of the pipe
 			close(fd2[READ_END]);
 			
 			printf("process finish.\n");
 				
 		}
-		else 
+		else // when pid == 0
 		{ 
-			/* child process */
+			int parent_status;
+			waitpid(pid, &parent_status, 0);
+			if WIFEXITED(parent_status)
+			{
+				printf("hihi");
+				exit(0);
+			}
+			// 2nd process, which is also the child process
 			close(fd1[WRITE_END]);
 			
-			/* read from the pipe */
-			printf("Child process begin to read msg from pipe\n");
+			// read from the pipe
+			printf("2nd (child) process begins to read message from pipe\n");
 			read(fd1[READ_END], read_msg, BUFFER_SIZE);
-			//debug
-			//printf("dubug1 %s.\n",read_msg);
 			
-			
-			/* close the write end of the pipe */
+			// close the write end of the pipe which is an unused end of the pipe
 			close(fd1[READ_END]);
-			//char child_result[32];
-				printf("Child begin to count words \"%s\"\n", read_msg);
+
+			printf("2nd (child) process begins to count words \"%s\" \n", read_msg);
 			int tmp;
+			// count words
 			tmp = count_words(read_msg);
 			int number[4];
 			number[0] = tmp;
-			//printf("debug2 %d.\n",number[0]);
-			//strcpy(child_result,tmp);
-			//printf("debug3 %d.\n",child_result);
-			/* close the unused end of the pipe */
+
+			// close the read end of the pipe which is an unused end of the pipe
 			close(fd2[READ_END]);
-			//debug
-			//printf("dubug2 %s.\n",read_msg);
 			
-			//unsigned char *tmp = (unsigned char*) child_result;
-			//debug
+			// write to the pipe
+			printf("2nd (child) process begins to send result to 1st (parent) process by pipe.\n");
+			write(fd2[WRITE_END], number, sizeof(int));
 			
-			//printf("debug4 %s.\n",tmp);
-			/* write to the pipe */
-			printf("Child process begin to send result to parent by pipe.\n");
-			write(fd2[WRITE_END],number, sizeof(int));
-			//printf("debug2 %d.\n",number[0]);
-			printf("Child process finish\n");
-			/* close the write end of the pipe */
+			printf("2nd (child) process finishes\n");
+			// close the write end of the pipe which is an unused end of the pipe
 			close(fd2[WRITE_END]);
 		}
 	}	
