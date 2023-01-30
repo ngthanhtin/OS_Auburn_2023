@@ -139,7 +139,6 @@ int main(int argc, char *argv[])
 			waitpid(pid, &parent_status, 0);
 			if WIFEXITED(parent_status)
 			{
-				printf("hihi");
 				exit(0);
 			}
 			// 2nd process, which is also the child process
