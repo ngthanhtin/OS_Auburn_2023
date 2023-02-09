@@ -2,9 +2,19 @@
  * COMP 7500: Project 2: pWordCount: A Pipe-based WordCount Tool 
  * Thanh Tin Nguyen - 904285164 
  * ttn0011@auburn.edu
- * Date:
+ * Date: Date: 2/9/2023
  * Auburn University
  */
+
+/*
+ * This work is about designing a C program where two processes are communicate via Unix Pipes.
+ * Process 1 will load a file and send the data of this file to Process 2.
+ * Process 2 will count the number of words and send this back to the Process 1, 
+ * Then in Process 1, display this number.
+
+This work used some code from the sample source code provided on Canvas for Project 2.
+*/ 
+
 #include<stdio.h>
 #include<unistd.h>
 #include<string.h>
@@ -56,20 +66,21 @@ int main(int argc, char *argv[])
 		
 		
 		printf("Creating a pipe ...\n");
-		// create the 1st pipe to send message from proc 1 to proc 2
+		// create the 1st pipe to send message from process 1 to process 2
 		if (pipe(fd1) == -1) 
 		{
 			fprintf(stderr,"Failed to create a pipe\n");
 			return 1;
 		}
-		// create the 2nd pipe to send message from proc 2 to proc 1
+		// create the 2nd pipe to send message from process 2 to process 1
 		if (pipe(fd2) == -1) 
 		{
 			fprintf(stderr,"Failed to create a pipe\n");
 			return 1;
 		}
 		
-		// then, fork a child process (process 1 which is the parent process, process 2 or other ones is child process)
+		// then, fork a child process 
+		//process 1 which is the parent process, process 2 or other ones is child process
 		printf("Forking a child process ...\n");
 		pid = fork();
 		
@@ -82,9 +93,8 @@ int main(int argc, char *argv[])
 		if (pid > 0) 
 		{ 
 			// 1st process, which is also the parent process
-
 			// The 1st process will read the content of a file and save into a buffer
-			printf("Begin to load file.\n");
+			printf("Process 1 is reading file %s now ...\n", filename);
 			FILE *file;
 			static char content[BUFFER_SIZE];
 			int errnum; // stores error number when attempting to open a file
@@ -99,74 +109,63 @@ int main(int argc, char *argv[])
 			{
 				fgets(content,BUFFER_SIZE,file);
 				fclose(file);
-				printf("Load file into buffer successfully.\n");
 			}
 			
 			// copy the data into an array which has the size of BUFFER_SIZE
 			strcpy(write_msg, content);
 
-			// close the read end of the pipe which is an unsued end of the pipe
+			// close the read end of the pipe1
 			close(fd1[READ_END]);
 			
 			// write to a pipe
-			printf("1st (parent) process begins to write message to a pipe\n");
+			printf("Process 1 starts sending data to Process 2 ...\n");
 			write(fd1[WRITE_END], write_msg, strlen(write_msg)+1);
 			
-			// close the write end of the pipe which is an unused end of the pipe
+			// close the write end of the pipe1
 			close(fd1[WRITE_END]);
 			
 			// wait for the 2nd (child) process
 			wait(0);
-
-			int result[4];  
-			// close the unused end of the pipe which is an unused end of the pipe
+ 
+			// close the write end of the pipe2
 			close(fd2[WRITE_END]);
-			
-			// read from the pipe 
-			printf("1st (parent) process get result from pipe.\n");
-			read(fd2[READ_END], result, sizeof(result));
+
+			// read from the pipe2
+			int num_words;
+			read(fd2[READ_END], &num_words, sizeof(num_words));
 			//print the result
-			printf("The result is %d.\n",result[0]);
-			// close the write end of the pipe which is an unused end of the pipe
+			printf("The total number of words is %d.\n",num_words);
+			// close the read end of the pipe2
 			close(fd2[READ_END]);
-			
-			printf("process finish.\n");
 				
 		}
 		else // when pid == 0
 		{ 
-			int parent_status;
-			waitpid(pid, &parent_status, 0);
-			if WIFEXITED(parent_status)
-			{
-				exit(0);
-			}
 			// 2nd process, which is also the child process
+
+			//close the write end of pipe1
 			close(fd1[WRITE_END]);
 			
-			// read from the pipe
-			printf("2nd (child) process begins to read message from pipe\n");
+			// read from the pipe1
 			read(fd1[READ_END], read_msg, BUFFER_SIZE);
-			
-			// close the write end of the pipe which is an unused end of the pipe
+			printf("Process 2 finishes receiving data from Process 1 ...\n");	
+			// close the write end of the pipe1
 			close(fd1[READ_END]);
 
-			printf("2nd (child) process begins to count words \"%s\" \n", read_msg);
-			int tmp;
+			
 			// count words
-			tmp = count_words(read_msg);
-			int number[4];
-			number[0] = tmp;
+			printf("Process 2 is counting words now ...\n");
+			int num_words;
+			num_words = count_words(read_msg);
 
-			// close the read end of the pipe which is an unused end of the pipe
+			// close the read end of the pipe2
 			close(fd2[READ_END]);
 			
-			// write to the pipe
-			printf("2nd (child) process begins to send result to 1st (parent) process by pipe.\n");
-			write(fd2[WRITE_END], number, sizeof(int));
+			// write to the pipe2
+			printf("Process 2 is sending the result back to Process 1 ...\n");
+			write(fd2[WRITE_END], &num_words, sizeof(num_words));
 			
-			printf("2nd (child) process finishes\n");
-			// close the write end of the pipe which is an unused end of the pipe
+			// close the write end of the pipe2
 			close(fd2[WRITE_END]);
 		}
 	}	
