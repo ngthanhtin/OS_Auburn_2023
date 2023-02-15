@@ -1,7 +1,7 @@
 /* COMP 7500: Project 2: pWordCount: A Pipe-based WordCount Tool 
  * Thanh Tin Nguyen - 904285164 
  * ttn0011@auburn.edu
- * Date: Date: 2/9/2023
+ * Date: Date: 2/10/2023
  * Auburn University
  */
 #include<stdio.h>
@@ -29,7 +29,8 @@ int count_words(char *word)
 	for(pos = 0; pos < len; pos++) // the pointer starts traversing the string from the beginning
         {
                 char cur_char = word[pos]; // this var is to store the current character
-                if(cur_char == '\0' || cur_char == ' ' || cur_char == '\t' || cur_char == '\n' || cur_char == '\r')
+                if(cur_char == '\0' || cur_char == ' ' || cur_char == '\t' 
+                 || cur_char == '\n' || cur_char == '\r')
                 {
 			if (pointer_still_in_a_word) 
 			{ 
@@ -76,15 +77,20 @@ void error_checking(int error_type, char *additional_msg)
         switch(error_type)
         {
                 case 1: // Forget filename
-                        printf("Not enough input arguments, please enter a file name.\nUsage: ./pwordcount <file_name>.txt\n");
+                        printf("Please enter a file name.\nUsage: ./pwordcount <file_name>\n");
                         break;
                 case 2: // too many input arguments
-                        printf("Too many input arguments, please check again.\nUsage: ./pwordcount <file_name>.txt\n");
+                        printf("Too many input arguments, please check again.\nUsage: ./pwordcount <file_name>\n");
                         break;
                 case 3: // wrong file extension name (in this project, only using text file (*.txt))
-                        printf("Wrong input file type, please use a text file.\nUsage: <file_name>.txt\n");
+                        printf("Wrong input file type, please use a text file.\nUsage: <file_name>\n");
                         break;
                 case 4: // can't load file
+                        // The additional message might be:
+                        // 1 Operation not permitted
+                        // 2 No such file or directory
+                        // 3 No such process
+                        // 4 Interrupted system call
                         printf("Error opening file: %s\n", additional_msg);
                         printf("Load file failed.\n");
                         break;
