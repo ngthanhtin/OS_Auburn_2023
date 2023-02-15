@@ -2,7 +2,7 @@
  * COMP 7500: Project 2: pWordCount: A Pipe-based WordCount Tool 
  * Thanh Tin Nguyen - 904285164 
  * ttn0011@auburn.edu
- * Date: Date: 2/9/2023
+ * Date: Date: 2/10/2023
  * Auburn University
  */
 
@@ -63,8 +63,6 @@ int main(int argc, char *argv[])
 		int fd1[2]; // file descriptors for pipe 1
 		int fd2[2]; // file descriptors for pipe 2
 
-		
-		
 		printf("Creating a pipe ...\n");
 		// create the 1st pipe to send message from process 1 to process 2
 		if (pipe(fd1) == -1) 
@@ -81,7 +79,7 @@ int main(int argc, char *argv[])
 		
 		// then, fork a child process 
 		//process 1 which is the parent process, process 2 or other ones is child process
-		printf("Forking a child process ...\n");
+		printf("Forking 2nd (child) process ...\n");
 		pid = fork();
 		
 		if (pid < 0) 
@@ -102,6 +100,11 @@ int main(int argc, char *argv[])
 			if(file == NULL) // if can not open the file
 			{
 				errnum = errno;
+				// The strerror might be:
+                // 1 Operation not permitted
+				// 2 No such file or directory
+				// 3 No such process
+				// 4 Interrupted system call
 				error_checking(4, strerror(errnum)); // load file failed
 				exit(0);
 			}
