@@ -18,20 +18,18 @@ int main(int argc, char *argv[])
 
   printf("A process is running ...\n");
 
-
-  if (argc >1 ){
-
-
-  	for(i=0;i<10;i++){
-  		for(i=0;i<50;i++){
-        // printf ("Argument %d is: %s\n", i, argv[i]);
+  if (argc >1 )
+  {
+    for(i=0;i<10;i++)
+    {
+      for(i=0;i<50;i++)
+      {
         // i++;
-        // argc--;
-
-		}
+      }
 		}
 		sleep(2);
- return 0;
-}
+  return 0;
+  }
+  return 0;
 }
 
