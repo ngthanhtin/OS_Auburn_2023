@@ -39,34 +39,34 @@ struct jobQueue
 
 };
 struct jobQueue job[MAX_JOB-1];
-void *scheduling();
-void *dispatching();
-void Help_Menu();
+void *scheduling(); // producer
+void *dispatching(); // consumer
+void help();
 void input_run(char input_cmd[]);
 void fcfs();
 void sjf();
 void priority();
-void perfEvaluate();
+void evaluate_performance();
 int splitColon(char time[]);
 
 int main()
 {
 	int err1,err2,j;
+	
+	// The idea of p-thread messages has been taken from Dr. Qin's source code.
+	char *message1 = "Command Thread";
+	char *message2 = "Executor Thread";
 
-  // The idea of p-thread messages has been taken from Dr. Qin's source code.
-  char *message1 = "Command Thread";
-  char *message2 = "Executor Thread";
+	printf("Welcome to Thanh-Tin Nguyen's batch job scheduler Version 1.0 \nType 'help' to find more about AUBatch commands.");
+	
+	err1=pthread_create(&command_thread,NULL,scheduling, (void*) message1);
 
-	printf("Welcome to Thanh-Tin Nguyen's batch job scheduler\nType 'help' to find more about AUBatch commands.");
-
-  err1=pthread_create(&command_thread,NULL,scheduling, (void*) message1);
-
-  if(err1 != 0)
+  	if(err1 != 0)
 		printf("\n Cannot create thread : [%s]",strerror(err1));
 
 	err2=pthread_create(&executor_thread,NULL,dispatching, (void*) message2);
 
-  if(err2 != 0)
+ 	if(err2 != 0)
 		printf("\n Cannot create thread : [%s]",strerror(err2));
 
 	pthread_mutex_init(&cmd_queue_lock, NULL);
@@ -75,12 +75,13 @@ int main()
 
 
 
-  pthread_join(command_thread, NULL);
-  pthread_join(executor_thread, NULL);
+  	pthread_join(command_thread, NULL);
+  	pthread_join(executor_thread, NULL);
+
 	return 0;
 }
 
-void Help_Menu()
+void help()
 {
 	printf("\nrun <jobname> <argument1> <argument2> <burst_time> <priority>: submit a job named <jobname>,\n\t\t execution time is <burst_time>,\n\t\t priority is <priority>.");
 	printf("\nlist: display the job status");
@@ -119,84 +120,89 @@ void input_run(char input_cmd[])
 	struct tm tm = *localtime(&T);
 	sprintf(job[head].arrival_time,"%d:%d:%d",tm.tm_hour, tm.tm_min, tm.tm_sec);
 	job[head].num = head+1;
-			count++;
-			head++;
-			total++;
+	count++;
+	head++;
+	total++;
 
 }
-void fcfs(){
-	int min_burst,min_arg1,min_arg2,min_priority,min_num;
-	char min_name[20],min_time[30];
-	int i,j;
-	   for (i = 1; i < count; i++)
-	   {   min_num = job[i].num;
-		   min_burst = job[i].burst_time;
-		   min_arg1 = job[i].arg1;
-		   min_arg2 = job[i].arg2;
-		   min_priority = job[i].priority;
-		   strcpy(min_name , job[i].name);
-		   strcpy(min_time ,job[i].arrival_time);
-		   j = i-1;
-		   while ((j >= 0) && (job[j].num > min_num))
-		   {
-			   job[j+1].num = job[j].num;
-			   job[j+1].burst_time = job[j].burst_time;
-			   job[j+1].arg1 = job[j].arg1;
-			   job[j+1].arg2 = job[j].arg2;
-			   job[j+1].priority = job[j].priority;
-			   strcpy(job[j+1].arrival_time ,job[j].arrival_time);
-			   strcpy(job[j+1].name ,job[j].name);
-			   j = j-1;
-		   }
-		   job[j+1].num = min_num;
-		   job[j+1].burst_time = min_burst;
-		   job[j+1].arg1 = min_arg1;
-		   job[j+1].arg2 = min_arg2;
-		   job[j+1].priority = min_priority;
-		   strcpy(job[j+1].arrival_time ,min_time);
-		   strcpy(job[j+1].name , min_name);
-	   }
-
+void fcfs()
+{
+	int min_burst, min_arg1, min_arg2, min_priority, min_num;
+	char min_name[20], min_time[30];
+	int i, j;
+	for (i = 1; i < count; i++)
+	{   
+		min_num = job[i].num;
+		min_burst = job[i].burst_time;
+		min_arg1 = job[i].arg1;
+		min_arg2 = job[i].arg2;
+		min_priority = job[i].priority;
+		strcpy(min_name , job[i].name);
+		strcpy(min_time ,job[i].arrival_time);
+		j = i-1;
+		while ((j >= 0) && (job[j].num > min_num))
+		{
+			job[j+1].num = job[j].num;
+			job[j+1].burst_time = job[j].burst_time;
+			job[j+1].arg1 = job[j].arg1;
+			job[j+1].arg2 = job[j].arg2;
+			job[j+1].priority = job[j].priority;
+			strcpy(job[j+1].arrival_time ,job[j].arrival_time);
+			strcpy(job[j+1].name ,job[j].name);
+			j = j-1;
+		}
+		job[j+1].num = min_num;
+		job[j+1].burst_time = min_burst;
+		job[j+1].arg1 = min_arg1;
+		job[j+1].arg2 = min_arg2;
+		job[j+1].priority = min_priority;
+		strcpy(job[j+1].arrival_time ,min_time);
+		strcpy(job[j+1].name , min_name);
+	}
 
 	printf("\nScheduling policy is switched to FCFS. All the %d waiting jobs have been rescheduled.",count);
 }
-void sjf(){
-	int min_burst,min_arg1,min_arg2,min_priority;
-	char min_name[20],min_time[30];
-	int i,j;
-	   for (i = 1; i < count; i++)
-	   {
-		   min_burst = job[i].burst_time;
-		   min_arg1 = job[i].arg1;
-		   min_arg2 = job[i].arg2;
-		   min_priority = job[i].priority;
-		   strcpy(min_name , job[i].name);
-		   strcpy(min_time ,job[i].arrival_time);
-		   j = i-1;
-		   while ((j >= 0) && (job[j].burst_time > min_burst))
-		   {
-			   job[j+1].burst_time = job[j].burst_time;
-			   job[j+1].arg1 = job[j].arg1;
-			   job[j+1].arg2 = job[j].arg2;
-			   job[j+1].priority = job[j].priority;
-			   strcpy(job[j+1].arrival_time ,job[j].arrival_time);
-			   strcpy(job[j+1].name ,job[j].name);
-			   j = j-1;
-		   }
-		   job[j+1].burst_time = min_burst;
-		   job[j+1].arg1 = min_arg1;
-		   job[j+1].arg2 = min_arg2;
-		   job[j+1].priority = min_priority;
-		   strcpy(job[j+1].arrival_time ,min_time);
-		   strcpy(job[j+1].name , min_name);
-	   }
 
-	   printf("\nScheduling policy is switched to SJF. All the %d waiting jobs have been rescheduled.",count);
-
+void sjf()
+{
+	int min_burst, min_arg1, min_arg2, min_priority;
+	char min_name[20], min_time[30];
+	int i, j;
+	for (i = 1; i < count; i++)
+	{
+		min_burst = job[i].burst_time;
+		min_arg1 = job[i].arg1;
+		min_arg2 = job[i].arg2;
+		min_priority = job[i].priority;
+		strcpy(min_name , job[i].name);
+		strcpy(min_time ,job[i].arrival_time);
+		j = i-1;
+		while ((j >= 0) && (job[j].burst_time > min_burst))
+		{
+			job[j+1].burst_time = job[j].burst_time;
+			job[j+1].arg1 = job[j].arg1;
+			job[j+1].arg2 = job[j].arg2;
+			job[j+1].priority = job[j].priority;
+			strcpy(job[j+1].arrival_time ,job[j].arrival_time);
+			strcpy(job[j+1].name ,job[j].name);
+			j = j-1;
+		}
+		job[j+1].burst_time = min_burst;
+		job[j+1].arg1 = min_arg1;
+		job[j+1].arg2 = min_arg2;
+		job[j+1].priority = min_priority;
+		strcpy(job[j+1].arrival_time ,min_time);
+		strcpy(job[j+1].name , min_name);
 	}
-void priority(){
-	int max_priority,max_arg1,max_arg2,max_burst_time;
-	char max_name[20],max_time[30];
+
+	printf("\nScheduling policy is switched to SJF. All the %d waiting jobs have been rescheduled.",count);
+
+}
+
+void priority()
+{
+	int max_priority, max_arg1, max_arg2, max_burst_time;
+	char max_name[20], max_time[30];
 	int i,j;
 	   for (i =1 ; i < count; i++)
 	   {
@@ -223,7 +229,7 @@ void priority(){
 		   job[j+1].arg2 = max_arg2;
 		   strcpy(job[j+1].arrival_time, max_time);
 		   stpcpy(job[j+1].name,max_name);
-}
+		}
 	printf("\nScheduling policy is switched to Priority. All the %d waiting jobs have been rescheduled.",count);
 
 }
@@ -231,16 +237,18 @@ void priority(){
 /* Scheduler thread */
 void *scheduling()
 {
-	int i,j;
-	float avg_turntime,avg_waittime,thro;
+	int i, j;
+	float avg_turntime, avg_waittime, throughtput;
 	char *input_cmd1;
 	char input_cmd[50];
     size_t input_size = 32;
 	input_cmd1 = (char *)malloc(input_size * sizeof(char));
-		for(i=0;i<MAX_JOB;i++){
+	for(i = 0;i < MAX_JOB; i++)
+	{
 		pthread_mutex_lock(&cmd_queue_lock);
         // printf("\nScheduler: count = %d", count);
-        while (count == MAX_JOB) {
+        while (count == MAX_JOB) 
+		{
 			/* Waits until the buffer is not full */
             pthread_cond_wait(&cmd_buf_not_full, &cmd_queue_lock);
         }
@@ -249,52 +257,61 @@ void *scheduling()
 		getline(&input_cmd1,&input_size,stdin);
 
 		strncpy(input_cmd,input_cmd1,strlen(input_cmd1)-1);
-		if(strcmp(input_cmd,"help")==0){
-			Help_Menu();
+		if(strcmp(input_cmd,"help")==0)
+		{
+			help();
 		}
 
-		else if(strstr(input_cmd,"run")){
+		else if(strstr(input_cmd,"run"))
+		{
 			pthread_mutex_lock(&cmd_queue_lock);
 			input_run(input_cmd);
 			if (head == MAX_JOB)
 				head = 0;
 
-        pthread_cond_signal(&cmd_buf_not_empty);
+        	pthread_cond_signal(&cmd_buf_not_empty);
 
-        pthread_mutex_unlock(&cmd_queue_lock);
+        	pthread_mutex_unlock(&cmd_queue_lock);
 		}
-		else if(strcmp(input_cmd,"list")==0){
+		else if(strcmp(input_cmd,"list")==0)
+		{
 			pthread_mutex_lock(&cmd_queue_lock);
-			printf("\nName\tCPU_Time\tPriority\tArrival_time\tProgress");
-			for(j=0;j<count;j++){
-				printf("\n%s\t%d\t\t%d\t\t%s\tTo be executed",job[j].name,job[j].burst_time,job[j].priority,job[j].arrival_time);
+			printf("\nName\tCPU_Time\tPri\tArrival_time\tProgress");
+			for(j=0;j<count;j++)
+			{
+				printf("\n%s\t%d\t\t%d\t\t%s\tRun",job[j].name,job[j].burst_time,job[j].priority,job[j].arrival_time);
 			}
 			pthread_mutex_unlock(&cmd_queue_lock);
 		}
-		else if(strcmp(input_cmd,"fcfs")==0){
+		else if(strcmp(input_cmd,"fcfs")==0)
+		{
 			fcfs();
 		}
-		else if(strcmp(input_cmd,"sjf")==0){
+		else if(strcmp(input_cmd,"sjf")==0)
+		{
 			pthread_mutex_lock(&cmd_queue_lock);
 			sjf();
 			pthread_mutex_unlock(&cmd_queue_lock);
 		}
-		else if(strcmp(input_cmd,"priority")==0){
+		else if(strcmp(input_cmd,"priority")==0)
+		{
 			pthread_mutex_lock(&cmd_queue_lock);
 			priority();
 			pthread_mutex_unlock(&cmd_queue_lock);
 		}
-		else if(strcmp(input_cmd,"quit")==0){
-		avg_turntime = turn_time/total;
-		avg_waittime = wait_time/total;
-		thro = 1.0/avg_turntime;
-		printf("\nTotal jobs submitted : %d",total);
-		printf("\nAverage waiting time : %f",avg_waittime);
-		printf("\nAverage turn around time : %f",avg_turntime);
-		printf("\nThroughput : %f",thro);
-		exit(0);
+		else if(strcmp(input_cmd,"quit")==0)
+		{
+			avg_turntime = turn_time/total;
+			avg_waittime = wait_time/total;
+			throughtput = 1.0/avg_turntime;
+			printf("\nTotal jobs submitted : %d",total);
+			printf("\nAverage waiting time : %f",avg_waittime);
+			printf("\nAverage turn around time : %f",avg_turntime);
+			printf("\nThroughput : %f\n",throughtput);
+			exit(0);
 		}
-		else{
+		else
+		{
 
 			printf("\n Type help to get the list of commands");
 		}
@@ -310,26 +327,29 @@ void *dispatching()
 	int i;
 	char arg1[20],arg2[20];
 
-	 for (i = 0; i <total+1 ; i++) {
+	for (i = 0; i <total+1 ; i++) 
+	{
 		sleep(20);
         pthread_mutex_lock(&cmd_queue_lock);
 
         // printf("\nDispatcher: count = %d", count);
 
-        while (count == 0) {
+        while (count == 0) 
+		{
 			/* Waits until the buffer has atleast one job */
             pthread_cond_wait(&cmd_buf_not_empty, &cmd_queue_lock);
 
         }
         count--;
 
-    sprintf(arg1,"%d",job[tail].arg1);
+    	sprintf(arg1,"%d",job[tail].arg1);
 		sprintf(arg2,"%d",job[tail].arg2);
 		time_t T1=time(NULL);
 		struct tm tm1 = *localtime(&T1);
 		sprintf(job[tail].exec_time,"%d:%d:%d",tm1.tm_hour, tm1.tm_min, tm1.tm_sec);
 		pid_t forked = fork();
-		if (forked==0){
+		if (forked==0)
+		{
 
 			execv("./process",(char*[]){"./process",arg1,arg2,NULL});
 
@@ -340,22 +360,24 @@ void *dispatching()
 		sprintf(job[tail].comp_time,"%d:%d:%d",tm2.tm_hour, tm2.tm_min, tm2.tm_sec);
 
 
-		perfEvaluate(job[tail].arrival_time,job[tail].exec_time,job[tail].comp_time);
+		evaluate_performance(job[tail].arrival_time,job[tail].exec_time,job[tail].comp_time);
 
         tail++;
-        if (tail == MAX_JOB){
+        if (tail == MAX_JOB)
+		{
 			tail = 0;
-			}
+		}
 
-      pthread_cond_signal(&cmd_buf_not_full);
+      	pthread_cond_signal(&cmd_buf_not_full);
 
-      pthread_mutex_unlock(&cmd_queue_lock);
+      	pthread_mutex_unlock(&cmd_queue_lock);
 
 
-	 }
-      return NULL;
+	}
+	return NULL;
 }
-void perfEvaluate(char arrival_time[],char exec_time[],char comp_time[]){
+void evaluate_performance(char arrival_time[],char exec_time[],char comp_time[])
+{
 
 	int arr;int exec;int comp;
 	arr = splitColon(arrival_time);
@@ -365,7 +387,8 @@ void perfEvaluate(char arrival_time[],char exec_time[],char comp_time[]){
 	turn_time = abs(turn_time + wait_time+(comp-exec));
 
 }
-int splitColon(char time[]){
+int splitColon(char time[])
+{
 	char t[30]="";
 	char *token = strtok(time, ":");
 	int stoi;
