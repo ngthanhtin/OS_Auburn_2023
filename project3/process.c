@@ -1,35 +1,22 @@
-/* ------------------------------------------------- */
+// Project 3 - AUbatch - A batch scheduling system
+// Thanh-Tin Nguyen
+// 18/03/2023
 
-/* Project 3 - AUbatch - A batch scheduling system
-/* Thanh-Tin Nguyen
-/* 18/03/2023
-
-/* -------------------------------------------------- */
-
-/*
- * This program will be launched in fork_execv
-
- */
+// This file is used in execv
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+
 int main(int argc, char *argv[])
 {
-  int i,arg1,arg2;
+  int burst_time;
+
+  sscanf(argv[2], "%d", &burst_time);
 
   printf("A process is running ...\n");
 
-  if (argc >1 )
-  {
-    for(i=0;i<10;i++)
-    {
-      for(i=0;i<50;i++)
-      {
-        // i++;
-      }
-		}
-		sleep(2);
+  sleep(burst_time);
   return 0;
-  }
-  return 0;
+  
 }
 
