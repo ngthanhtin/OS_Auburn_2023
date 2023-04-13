@@ -10,21 +10,19 @@
 #define EXTENT_SIZE 32
 #define BLOCKS_PER_EXTENT 16 
 // define global variables
-bool free_list[256];
+bool free_list[256]; // an array that contains a list of used and unused blocks
 
-/*makes a directory structure containing the file elements from the main memory.*/
-/* Pointer *e was explained in the class taken from Dr. Qin's code. */
-
+// makes a directory structure containing the file elements from the main memory
 DirStructType *mkDirStruct(int index,uint8_t *e) 
 {
-	/* using malloc to set up the block size was recommeded by Dr. Qin. */
+	// using malloc to set up the block size was recommeded by Dr. Qin
 	DirStructType *d = malloc(sizeof(d));
 	//status
 	uint8_t *loc = (e+index*EXTENT_SIZE);
 	d -> status = loc[0];
 
 	int i = 0;
-	int j = 1;//start byte index of filename
+	int j = 1;//start byte index of filename bytes
 	//name
 	while (j <= 9)
 	{
@@ -33,12 +31,12 @@ DirStructType *mkDirStruct(int index,uint8_t *e)
 		i++;
 		j++;
 	}
-	//add terminator to filename
+	//add terminator to filename bytes
 	d -> name[8] = '\0';
 	
 	//extension
 	i = 0;
-	j = 9; // start byte index of extension
+	j = 9; // start byte index of extension bytes
 	while(j <= 12)
 	{
 		if (loc[j] != ' ')
@@ -46,7 +44,7 @@ DirStructType *mkDirStruct(int index,uint8_t *e)
 		i++;
 		j++;
 	}
-	//add teminator to extension
+	//add teminator to extension bytes
 	d -> extension[3] = '\0';
 	
 	//4 bytes
@@ -57,7 +55,7 @@ DirStructType *mkDirStruct(int index,uint8_t *e)
 
 	//block
 	i = 0;
-	j = 16; // start byte index of blocks
+	j = 16; // start byte index of block bytes
 	for(i = 0; i < BLOCKS_PER_EXTENT; i++) 
 	{
 		d -> blocks[i] = loc[j];
@@ -67,19 +65,18 @@ DirStructType *mkDirStruct(int index,uint8_t *e)
 	return d;
 }	
 
-/*gives the directory structure with the file length for each file*/
-
+// gives the directory structure with the file length for each file
 void cpmDir()
 {
 	int i, block_i;
 	int block_num = 0;
 	int file_len = 0;
-	uint8_t *block0 = malloc(1024);
+	uint8_t *block0 = malloc(BLOCK_SIZE);
 	blockRead(block0, 0);
 	
 	printf("DIRECTORY LISTING\n");
 
-	for(i=0; i<32; i++)
+	for(i=0; i < EXTENT_SIZE; i++)
 	{
 		DirStructType *d = mkDirStruct(i, block0);
 		if(d -> status != 0xe5)
@@ -97,15 +94,17 @@ void cpmDir()
 	}
 }
 
-/*writes the directory structure into the main memory*/
-void writeDirStruct(DirStructType *d,uint8_t index, uint8_t *e)
+// writes the directory structure into the main memory 
+void writeDirStruct(DirStructType *d, uint8_t index, uint8_t *e)
 {	
 	int i=0;
 	int j;
 	uint8_t *loc = (e+index*EXTENT_SIZE);
 	loc[0] = d -> status;
-	i++;
+	
 	j=0;
+	i = 1; //start byte index of filename bytes
+	//name
 	while(i < 9)
 	{
 		if (d -> name[j] != '\0')
@@ -120,6 +119,8 @@ void writeDirStruct(DirStructType *d,uint8_t index, uint8_t *e)
 		i++;
 	}
 	j=0;
+	i = 9; // start byte index of extension bytes
+	//extension
 	while(i<12)
 	{
 		if (d -> extension[j] != '\0')
@@ -133,13 +134,15 @@ void writeDirStruct(DirStructType *d,uint8_t index, uint8_t *e)
 	    j++;
 		i++;
 	}
+	// 4 bytes
 	loc[12] = d -> XL;
 	loc[13] = d -> BC;
 	loc[14] = d -> XH;
 	loc[15] = d -> RC;
-	i=16;
+
+	i=16;// start byte index of block bytes
 	j=0;
-	while(i<32)
+	while(i < EXTENT_SIZE)
 	{
 		loc[i] = d -> blocks[j];
 		i++;
@@ -147,19 +150,20 @@ void writeDirStruct(DirStructType *d,uint8_t index, uint8_t *e)
 	}	
 }
 
-/*global free list array that contains a list of used and unused blocks*/
-// populate the FreeList global data structure. freeList[i] == true means 
-// that block i of the disk is free. block zero is never free, since it holds
-// the directory. freeList[i] == false means the block is in use. 
+
+// make free list that contains a list of used and unused blocks
+// Note that; block0 is never free, since it holds the directory. 
+// free_list[i] == true -> ith block is free 
+// free_list[i] == false -> ith block is in use. 
 void makeFreeList()
 {
 
-	uint8_t *block0 = malloc(1024);
+	uint8_t *block0 = malloc(BLOCK_SIZE);
 	int i, block_i;
 	
 	free_list[0] = false;
 
-	for(i = 1;i < 256; i++)
+	for(i = 1;i < NUM_BLOCKS; i++)
 	{
 		free_list[i] = true;
 	}
@@ -167,7 +171,7 @@ void makeFreeList()
 	// extent
 	blockRead(block0, 0);
 
-	for(i = 0;i < 32; i++)
+	for(i = 0;i < EXTENT_SIZE; i++)
 	{
 		DirStructType *extent = mkDirStruct(i, block0);
 		if (extent -> status != 0xe5)
@@ -181,7 +185,7 @@ void makeFreeList()
 	}
 }
 
-/*prints the freelist */
+// prints the freelist
 void printFreeList()
 {
 	int i=0;	
@@ -190,9 +194,9 @@ void printFreeList()
 	fprintf(stdout,"%x0: ",0);	
 	i++;
 	free_list[0] = false;
-	while(j>=0 && j<256)
+	while(j >= 0 && j < NUM_BLOCKS)
 	{
-		if (j%16 == 0 && j!=0)
+		if (j % BLOCKS_PER_EXTENT == 0 && j!=0)
 		{
 			fprintf(stdout,"\n");
 			fprintf(stdout,"%x0: ",i);
@@ -212,15 +216,15 @@ void printFreeList()
 	fprintf(stdout,"\n");
 }
 
-/*
-Checks if the file name is valid or not, a file name is valid if:
-no blank, no special characters, no punctuation, no controls, etc
-*/
+
+// checks if the file name is valid or not, a file name is valid if:
+// no blank, no special characters, no punctuation, no controls, etc
+
 bool checkLegalName(char *name)
 {
-	int i=0;
-	int length=0;
-	int ext_bit;
+	int i=0; // filename index
+	int length=0; // length of name
+	int extension_i; // extension index
 	length=strlen(name);
 	if (name[0]!= ' ' || name[0] != '.'|| name[0] != '\0')
 	{		
@@ -232,21 +236,20 @@ bool checkLegalName(char *name)
 			}
 			else 
 			{
-				
 				return false;
 			}
 		}
-		if (name[i]=='.' && i<=8)
+		if (name[i]=='.' && i <= 8)
 		{
-			ext_bit = 0;
+			extension_i = 0;
 			i++;
-			while(ext_bit<3 && i<12 && i<length)
+			while(extension_i<3 && i<12 && i<length)
 			{				
-				if ((name[i]>=65 && name[i]<=90) || (name[i] >=97 && name[i] <= 122) || (name[i] >=48 && name[i] <= 57) && (ext_bit<3))
+				if ((name[i]>=65 && name[i]<=90) || (name[i] >=97 && name[i] <= 122) || (name[i] >=48 && name[i] <= 57) && (extension_i<3))
 				{
 					
 					i++;
-					ext_bit++;				    
+					extension_i++;				    
 				}
 				else 
 				{
@@ -258,19 +261,16 @@ bool checkLegalName(char *name)
 		}
 		else 
 		{
-			
 			return false;
 		}
 	
 		return true;
 	}
-	else
-	{
-		return false;
-	}
+	return false;
+	
 }
 
-/*returns the index value of the file for which the data is to be accessed.*/
+// returns the index value of the file for which the data is to be accessed
 int findExtentWithName(char *name, uint8_t *block0)
 {
 	bool result;
@@ -279,12 +279,12 @@ int findExtentWithName(char *name, uint8_t *block0)
 	int j=0;
 	char sp_name[9];
 	char sp_ext[4];
-	DirStructType *cpm_dir;
+	DirStructType *extent;
 	char sp[18];
 	int length=0;
 	length=strlen(name);
 	result = checkLegalName(name);
-	// Add '\0' to the end of filename and file extension name
+	// Add '\0' (terminator) to the end of filename and file extension name
 	if (result == true)
 	{
 		while(i>=0 && i<length)
@@ -318,12 +318,12 @@ int findExtentWithName(char *name, uint8_t *block0)
 				sp_ext[j]='\0';
 			}
 		}
-		for(index=0;index<32;index++)
+		for(index = 0;index < EXTENT_SIZE; index++)
 		{
-			cpm_dir = mkDirStruct(index,block0);
-			if (((strcmp(sp_name,cpm_dir->name))==0) && ((strcmp(sp_ext,cpm_dir->extension))==0))
+			extent = mkDirStruct(index, block0);
+			if (((strcmp(sp_name,extent->name))==0) && ((strcmp(sp_ext,extent->extension))==0))
 			{
-				if(cpm_dir -> status != 0xe5)
+				if(extent -> status != 0xe5)
 				{
 					return index;
 				}
@@ -333,106 +333,106 @@ int findExtentWithName(char *name, uint8_t *block0)
 	}	
 	else 
 	{
-		printf("This file name is not valid.\n");
-		return false;
+		printf("Can not find this file name \" %s \" .\n", name);
+		return -1;
 	}
 		
 }
 
-
-
-/*	delete a filename and its allocated blocks with the filename passed as a parameter*/
-int  cpmDelete(char * name)
+// rename an old filename by a new filename
+int cpmRename(char *old_name, char *new_name)
 {
-
-	uint8_t buffer[1024];
-	DirStructType *cpm_dir;
-	int result=0;
-	int index;
-
-	blockRead(buffer,(uint8_t)0);
-
-	result= findExtentWithName(name,buffer);
-
-	if (result!=-1)
-	{		
-	    cpm_dir = mkDirStruct(result,buffer);
-		cpm_dir -> status = 0xe5;
-		index=0;
-		while(index<16)
-		{		
-			free_list[(int)cpm_dir -> blocks[index]] = true;	
-			cpm_dir -> blocks[index] = 0;			
-			index ++;
-		}
-		writeDirStruct(cpm_dir,result,buffer);
-		blockWrite(buffer,(uint8_t)0); 
-		return 0;
-	
-	}
-	else
-	{
-		return -1;
-	}
-}
-
-/*rename a filename with the old filename and new filename passed as parameters*/
-int cpmRename(char *old_Name, char * new_Name)
-{
-	uint8_t buffer[1024];
+	uint8_t *block0 = malloc(BLOCK_SIZE);
 
 	int i=0;
-	int length=0;
 	int j=0;
-	int result=0;
-	bool check;
-	length = strlen(new_Name);
-	DirStructType *cpm_dir;
-	blockRead(buffer,(uint8_t)0);
-	check = checkLegalName(new_Name);
+
+	int length=0;
+	bool check; // used to check if the old_name or new_name is valid
+	length = strlen(new_name);
+
+	check = checkLegalName(old_name);
 	if (check == false)
 	{
 		return -2;
 	}
-	result= findExtentWithName(old_Name,buffer);
+	check = checkLegalName(new_name);
+	if (check == false)
+	{
+		return -2;
+	}
+
+	DirStructType *extent;
+	blockRead(block0, 0);
+	
+	int result=0;
+	result = findExtentWithName(old_name, block0);
 	if (result!=-1)
 	{
-		cpm_dir = mkDirStruct(result,buffer);
-		while(i>=0 && i<length)
+		extent = mkDirStruct(result, block0);
+		while(i >= 0 && i < length)
 		{
-			if (new_Name[i]!='.')
+			if (new_name[i] != '.')
 			{
-				cpm_dir -> name[j] = new_Name[i];				
+				extent -> name[j] = new_name[i];				
 				i++;
 				j++;
 			}
-			else if (new_Name[i] == '.')
+			else if (new_name[i] == '.')
 			{
 				i++;
-				cpm_dir -> name[j]='\0';
+				extent -> name[j] = '\0';
 				j=0;
-				while(i>0 && i<length)
+				while(i > 0 && i < length)
 				{
-					if (new_Name[i]!=' ')
+					if (new_name[i] != ' ')
 					{
-						cpm_dir -> extension[j] = new_Name[i];
+						extent -> extension[j] = new_name[i];
 						j++;
 						i++;
 					}
-					else if (new_Name[i]==' ')
+					else if (new_name[i] == ' ')
 					{
-						cpm_dir -> extension[j]='\0';
+						extent -> extension[j] = '\0';
 						break;
 					}
 					
 				}
-				cpm_dir -> extension[j]='\0';
+				extent -> extension[j] = '\0';
 			}
 		}
-		writeDirStruct(cpm_dir,result,buffer);	
-		blockWrite(buffer,(uint8_t)0); 
+		writeDirStruct(extent,result, block0);	
+		blockWrite(block0, 0); 
 		return 0;
 	}
-	else 
-		return -1;
+	return -1;
+}
+
+// delete a filename and its allocated blocks
+int  cpmDelete(char * name)
+{
+	uint8_t *block0 = malloc(BLOCK_SIZE);
+	DirStructType *extent;
+	blockRead(block0, 0);
+
+	int result = 0;
+	result = findExtentWithName(name, block0);
+
+	if (result!=-1)
+	{		
+	    extent = mkDirStruct(result, block0);
+		extent -> status = 0xe5;
+		int i = 0;
+		while(i < BLOCKS_PER_EXTENT)
+		{		
+			free_list[(int)extent -> blocks[i]] = true;	
+			extent -> blocks[i] = 0;			
+			i++;
+		}
+		writeDirStruct(extent, result, block0);
+		blockWrite(block0, 0); 
+		return 0;
+	
+	}
+	return -1;
 }
