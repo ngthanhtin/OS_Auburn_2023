@@ -1,3 +1,8 @@
+// Project 4 - cpmFS - A Simple File System
+// Thanh-Tin Nguyen
+// 24/04/2023
+// I started with Dr. Qin's code from canvas
+
 #include "cpmfsys.h"
 #include "diskSimulator.h"
 #include <string.h>
