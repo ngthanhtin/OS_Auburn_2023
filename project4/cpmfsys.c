@@ -227,51 +227,73 @@ void printFreeList()
 
 bool checkLegalName(char *name)
 {
-	int i=0; // filename index
-	int length=0; // length of name
-	int extension_i; // extension index
-	length=strlen(name);
-	if (name[0]!= ' ' || name[0] != '.'|| name[0] != '\0')
-	{		
-		while (name[i]!= '.' && i<8 && i<length)
+	// int i=0; // filename index
+	// int length=0; // length of name
+	// int extension_i; // extension index
+	// length=strlen(name);
+
+	// define punctuation and special characters
+	char *punct_special_chars = "!\"#$%&'()*+,-/:;<=>?@[\\]^_`{|}~";
+	int num_punct_special_chars = strlen(punct_special_chars);
+	int i, j;
+	int len = strlen(name);
+    for (i = 0; i < len; i++) 
+	{
+		if(name[i] == ' ')
+			return 0; // invalid filename
+
+		// Check if input character is a special or punctuation character
+  		for (j = 0; j < num_punct_special_chars; j++) 
 		{
-			if ((name[i]>=65 && name[i]<=90) || (name[i] >=97 && name[i] <= 122) || (name[i] >=48 && name[i] <= 57) && i<8)
+    		if (name[i] == punct_special_chars[j]) 
 			{
-				i++;			
-			}
-			else 
-			{
-				return false;
-			}
-		}
-		if (name[i]=='.' && i <= 8)
-		{
-			extension_i = 0;
-			i++;
-			while(extension_i<3 && i<12 && i<length)
-			{				
-				if ((name[i]>=65 && name[i]<=90) || (name[i] >=97 && name[i] <= 122) || (name[i] >=48 && name[i] <= 57) && (extension_i<3))
-				{
-					
-					i++;
-					extension_i++;				    
-				}
-				else 
-				{
-					return false;
-				}
-			}
-			
-			return true;
-		}
-		else 
-		{
-			return false;
-		}
-	
-		return true;
+      			return false; // invalid filename
+    		}
+  		}
 	}
-	return false;
+    return true; // valid filename
+
+	// if (name[0]!= ' ' || name[0] != '.'|| name[0] != '\0')
+	// {		
+	// 	while (name[i]!= '.' && i<8 && i<length)
+	// 	{
+	// 		if ((name[i]>=65 && name[i]<=90) || (name[i] >=97 && name[i] <= 122) || (name[i] >=48 && name[i] <= 57) && i<8)
+	// 		{
+	// 			i++;			
+	// 		}
+	// 		else 
+	// 		{
+	// 			return false;
+	// 		}
+	// 	}
+	// 	if (name[i]=='.' && i <= 8)
+	// 	{
+	// 		extension_i = 0;
+	// 		i++;
+	// 		while(extension_i<3 && i<12 && i<length)
+	// 		{				
+	// 			if ((name[i]>=65 && name[i]<=90) || (name[i] >=97 && name[i] <= 122) || (name[i] >=48 && name[i] <= 57) && (extension_i<3))
+	// 			{
+					
+	// 				i++;
+	// 				extension_i++;				    
+	// 			}
+	// 			else 
+	// 			{
+	// 				return false;
+	// 			}
+	// 		}
+			
+	// 		return true;
+	// 	}
+	// 	else 
+	// 	{
+	// 		return false;
+	// 	}
+	
+	// 	return true;
+	// }
+	// return false;
 	
 }
 
@@ -284,6 +306,7 @@ int findExtentWithName(char *name, uint8_t *block0)
 	int j=0;
 	char sp_name[9];
 	char sp_ext[4];
+	sp_ext[0] = '\0'; // mark the terminator to extension name to make sure if the filename does not have extension
 	DirStructType *extent;
 	char sp[18];
 	int length=0;
@@ -323,6 +346,7 @@ int findExtentWithName(char *name, uint8_t *block0)
 				sp_ext[j]='\0';
 			}
 		}
+
 		for(index = 0;index < EXTENT_SIZE; index++)
 		{
 			extent = mkDirStruct(index, block0);
@@ -334,7 +358,7 @@ int findExtentWithName(char *name, uint8_t *block0)
 				}
 			}			
 		}
-		return -1;
+		return -1; // can not find the corresponding extent
 	}	
 	else 
 	{
@@ -361,6 +385,7 @@ int cpmRename(char *old_name, char *new_name)
 	{
 		return -2;
 	}
+	
 	check = checkLegalName(new_name);
 	if (check == false)
 	{
