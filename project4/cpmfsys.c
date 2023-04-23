@@ -223,14 +223,10 @@ void printFreeList()
 
 
 // checks if the file name is valid or not, a file name is valid if:
-// no blank, no special characters, no punctuation, no controls, etc
+// no blank, no special characters, no punctuation, etc
 
 bool checkLegalName(char *name)
 {
-	// int i=0; // filename index
-	// int length=0; // length of name
-	// int extension_i; // extension index
-	// length=strlen(name);
 
 	// define punctuation and special characters
 	char *punct_special_chars = "!\"#$%&'()*+,-/:;<=>?@[\\]^_`{|}~";
@@ -252,52 +248,9 @@ bool checkLegalName(char *name)
   		}
 	}
     return true; // valid filename
-
-	// if (name[0]!= ' ' || name[0] != '.'|| name[0] != '\0')
-	// {		
-	// 	while (name[i]!= '.' && i<8 && i<length)
-	// 	{
-	// 		if ((name[i]>=65 && name[i]<=90) || (name[i] >=97 && name[i] <= 122) || (name[i] >=48 && name[i] <= 57) && i<8)
-	// 		{
-	// 			i++;			
-	// 		}
-	// 		else 
-	// 		{
-	// 			return false;
-	// 		}
-	// 	}
-	// 	if (name[i]=='.' && i <= 8)
-	// 	{
-	// 		extension_i = 0;
-	// 		i++;
-	// 		while(extension_i<3 && i<12 && i<length)
-	// 		{				
-	// 			if ((name[i]>=65 && name[i]<=90) || (name[i] >=97 && name[i] <= 122) || (name[i] >=48 && name[i] <= 57) && (extension_i<3))
-	// 			{
-					
-	// 				i++;
-	// 				extension_i++;				    
-	// 			}
-	// 			else 
-	// 			{
-	// 				return false;
-	// 			}
-	// 		}
-			
-	// 		return true;
-	// 	}
-	// 	else 
-	// 	{
-	// 		return false;
-	// 	}
-	
-	// 	return true;
-	// }
-	// return false;
-	
 }
 
-// returns the index value of the file for which the data is to be accessed
+// Find the index of the file for which the data is to be accessed
 int findExtentWithName(char *name, uint8_t *block0)
 {
 	bool result;
@@ -306,13 +259,14 @@ int findExtentWithName(char *name, uint8_t *block0)
 	int j=0;
 	char sp_name[9];
 	char sp_ext[4];
-	sp_ext[0] = '\0'; // mark the terminator to extension name to make sure if the filename does not have extension
+	// mark the terminator to extension name to make sure if the filename does not have extension
+	sp_ext[0] = '\0'; 
 	DirStructType *extent;
 	char sp[18];
 	int length=0;
 	length=strlen(name);
 	result = checkLegalName(name);
-	// Add '\0' (terminator) to the end of filename and file extension name
+	// If the filename is illegal, return -1 and print "Can not find this file name" for a user.
 	if (result == true)
 	{
 		while(i>=0 && i<length)
